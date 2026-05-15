@@ -2,8 +2,8 @@
 
 Two complementary mini-projects illustrating different points on the LLM training spectrum:
 
-1. **Post-training (LoRA fine-tuning)** — adapt a pretrained 1.1B model to a tiny custom task. Cheap, fast, the standard real-world workflow.
-2. **Pretraining (from scratch)** — train a ~10M-param transformer on raw text starting from random weights. Tiny scale, but the same mechanics frontier labs use.
+1. **Pretraining (from scratch)** — train a ~10M-param transformer on raw text starting from random weights. Tiny scale, but the same mechanics frontier labs use.
+2. **Post-training (LoRA fine-tuning)** — adapt a pretrained 1.1B model to a tiny custom task. Cheap, fast, the standard real-world workflow.
 
 Both flows run on:
 - **NVIDIA GPU** (CUDA) on Linux/Windows
@@ -15,48 +15,21 @@ Both flows run on:
 ```
 .
 ├── check_device.py          # generic CUDA/MPS/CPU detector + benchmark
-├── posttrain/               # Part 1 — LoRA fine-tuning of TinyLlama
-│   ├── post_train.py
-│   ├── inference.py
-│   └── M4-TinyLlama-Colorist/   # generated: 9 MB LoRA adapter
-└── pretrain/                # Part 2 — from-scratch nanoGPT
-    ├── model.py
-    ├── pretrain.py
-    ├── generate.py
-    ├── tinyshakespeare.txt      # downloaded by pretrain.py
-    └── nano-shakespeare.pt      # generated: model checkpoint
+├── pretrain/                # Part 1 — from-scratch nanoGPT
+│   ├── model.py
+│   ├── pretrain.py
+│   ├── generate.py
+│   ├── tinyshakespeare.txt      # downloaded by pretrain.py
+│   └── nano-shakespeare.pt      # generated: model checkpoint
+└── posttrain/               # Part 2 — LoRA fine-tuning of TinyLlama
+    ├── post_train.py
+    ├── inference.py
+    └── M4-TinyLlama-Colorist/   # generated: 9 MB LoRA adapter
 ```
 
 ---
 
-## Part 1 — LoRA Fine-Tuning
-
-Teach the pretrained [TinyLlama-1.1B-Chat](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0) to associate emotions with colors using a 5-example dataset and a rank-16 LoRA adapter.
-
-### Files
-
-| File | Purpose |
-|---|---|
-| [check_device.py](check_device.py) | Detects CUDA/MPS/CPU and benchmarks with a 5000² matmul |
-| [posttrain/post_train.py](posttrain/post_train.py) | LoRA fine-tunes TinyLlama on emotion→color pairs. Saves a 9 MB adapter to `M4-TinyLlama-Colorist/` |
-| [posttrain/inference.py](posttrain/inference.py) | Loads the base model + adapter and generates responses |
-
-### Usage
-
-```bash
-python check_device.py            # confirm GPU is wired up
-cd posttrain
-python post_train.py              # fine-tunes — base model auto-downloads (~2.1 GB) on first run
-python inference.py               # see the fine-tuned model's outputs
-```
-
-Knobs at the top of [posttrain/post_train.py](posttrain/post_train.py):
-- `MODEL_NAME` — swap to `meta-llama/Meta-Llama-3-8B` if you have ≥32 GB unified memory or a larger NVIDIA GPU
-- `per_device_train_batch_size` — bump on bigger hardware
-
----
-
-## Part 2 — From-Scratch Pretraining
+## Part 1 — From-Scratch Pretraining
 
 A character-level GPT (~10M params) trained from random initialization on [TinyShakespeare](https://github.com/karpathy/char-rnn/tree/master/data/tinyshakespeare) (~1 MB of Shakespeare's plays). Inspired by Karpathy's [nanoGPT](https://github.com/karpathy/nanoGPT).
 
@@ -104,6 +77,33 @@ For sharper output: increase `MAX_ITERS` in [pretrain/pretrain.py](pretrain/pret
 
 ---
 
+## Part 2 — LoRA Fine-Tuning
+
+Teach the pretrained [TinyLlama-1.1B-Chat](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0) to associate emotions with colors using a 5-example dataset and a rank-16 LoRA adapter.
+
+### Files
+
+| File | Purpose |
+|---|---|
+| [check_device.py](check_device.py) | Detects CUDA/MPS/CPU and benchmarks with a 5000² matmul |
+| [posttrain/post_train.py](posttrain/post_train.py) | LoRA fine-tunes TinyLlama on emotion→color pairs. Saves a 9 MB adapter to `M4-TinyLlama-Colorist/` |
+| [posttrain/inference.py](posttrain/inference.py) | Loads the base model + adapter and generates responses |
+
+### Usage
+
+```bash
+python check_device.py            # confirm GPU is wired up
+cd posttrain
+python post_train.py              # fine-tunes — base model auto-downloads (~2.1 GB) on first run
+python inference.py               # see the fine-tuned model's outputs
+```
+
+Knobs at the top of [posttrain/post_train.py](posttrain/post_train.py):
+- `MODEL_NAME` — swap to `meta-llama/Meta-Llama-3-8B` if you have ≥32 GB unified memory or a larger NVIDIA GPU
+- `per_device_train_batch_size` — bump on bigger hardware
+
+---
+
 ## Setup
 
 This repo uses [uv](https://docs.astral.sh/uv/) for environment management.
@@ -130,15 +130,15 @@ source .venv/bin/activate
 
 ---
 
-## LoRA vs. Pretraining at a glance
+## Pretraining vs. LoRA at a glance
 
-|  | LoRA (Part 1) | Pretraining (Part 2) |
+|  | Pretraining (Part 1) | LoRA (Part 2) |
 |---|---|---|
-| Starting point | Pretrained 1.1B model | Random weights |
-| Trainable params | ~9 MB (LoRA adapters) | ~43 MB (entire model) |
-| Dataset | 5 examples × 10 | 1 MB of text |
-| Training time on GTX 1080 | ~5 seconds | ~23 minutes |
-| Output quality | Coherent English (inherited from base) | Letter-soup that looks plays-ish |
-| Real-world analog | Llama → ChatGPT fine-tune | GPT pretraining (at trillion-token scale) |
+| Starting point | Random weights | Pretrained 1.1B model |
+| Trainable params | ~43 MB (entire model) | ~9 MB (LoRA adapters) |
+| Dataset | 1 MB of text | 5 examples × 10 |
+| Training time on GTX 1080 | ~23 minutes | ~5 seconds |
+| Output quality | Letter-soup that looks plays-ish | Coherent English (inherited from base) |
+| Real-world analog | GPT pretraining (at trillion-token scale) | Llama → ChatGPT fine-tune |
 
 The two demos make the cost gap concrete: even a *tiny* from-scratch run on a postage-stamp dataset takes 270× longer than fine-tuning a pretrained 1.1B model on the same hardware — and produces dramatically worse output. That's why everyone fine-tunes.
