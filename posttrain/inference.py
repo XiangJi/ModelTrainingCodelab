@@ -5,7 +5,12 @@ from peft import PeftModel
 BASE_MODEL = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 ADAPTER_MODEL = "M4-TinyLlama-Colorist"
 
-device = "mps" if torch.backends.mps.is_available() else "cpu"
+if torch.cuda.is_available():
+    device = "cuda"
+elif torch.backends.mps.is_available():
+    device = "mps"
+else:
+    device = "cpu"
 
 # 1. Load Base Model (use FP32 for stable inference on MPS)
 base_model = AutoModelForCausalLM.from_pretrained(

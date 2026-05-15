@@ -33,7 +33,9 @@ wheels/
 *.bin
 *.safetensors
 results/
-M4-TinyLlama-Colorist/
+posttrain/results/
+posttrain/M4-TinyLlama-Colorist/
+pretrain/tinyshakespeare.txt
 
 # IDE
 .vscode/

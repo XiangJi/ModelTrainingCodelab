@@ -15,8 +15,13 @@ from trl import SFTTrainer
 MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0" 
 NEW_MODEL_NAME = "M4-TinyLlama-Colorist"
 
-# --- 1. Setup MPS Device ---
-device = "mps" if torch.backends.mps.is_available() else "cpu"
+# --- 1. Setup Device (CUDA on Linux/Windows, MPS on Apple Silicon, else CPU) ---
+if torch.cuda.is_available():
+    device = "cuda"
+elif torch.backends.mps.is_available():
+    device = "mps"
+else:
+    device = "cpu"
 print(f"🚀 Training on device: {device}")
 
 # --- 2. Load Dataset ---
@@ -62,11 +67,10 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=1,
     learning_rate=2e-4,
     weight_decay=0.001,
-    fp16=True,      # Enable mixed precision (crucial for Apple Silicon speed)
+    fp16=True,      # Enable mixed precision (works on CUDA and Apple Silicon)
     logging_steps=1,
     save_strategy="no",
     report_to="none", # Disable wandb for this demo
-    use_mps_device=True # Explicitly tell Trainer to use MPS
 )
 
 # --- 6. Initialize Trainer ---
